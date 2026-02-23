@@ -10,6 +10,27 @@ export default function Home() {
 
   useEffect(() => {
     setShowFloatingButtons(true);
+
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('scroll-fade-in');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    const elements = document.querySelectorAll('[data-scroll-animate]');
+    elements.forEach((el) => {
+      observer.observe(el);
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -66,7 +87,7 @@ export default function Home() {
       </section>
 
       {/* Expert Scalp Care Section */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-secondary border-y border-border/40">
+      <section className="py-16 sm:py-24 lg:py-32 bg-secondary border-y border-border/40" data-scroll-animate>
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mx-auto text-center mb-12 sm:mb-20 fade-in-up">
             <p className="text-primary font-light tracking-widest uppercase text-xs sm:text-sm mb-4">Expert Care Philosophy</p>
@@ -78,7 +99,7 @@ export default function Home() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
             {/* Card 1 */}
-            <div className="fade-in-up-delay-1 border border-border/40 rounded-lg p-6 sm:p-8 bg-background hover:border-primary/40 hover:shadow-lg transition-all duration-300">
+            <div className="fade-in-up-delay-1 border border-border/40 rounded-lg p-6 sm:p-8 bg-background hover:border-primary/40 hover:shadow-lg transition-all duration-300" data-scroll-animate>
               <div className="mb-6 inline-flex p-4 rounded-lg bg-primary/8">
                 <Sparkles className="w-6 h-6 text-primary" />
               </div>
@@ -89,7 +110,7 @@ export default function Home() {
             </div>
 
             {/* Card 2 */}
-            <div className="fade-in-up-delay-2 border border-border/40 rounded-lg p-6 sm:p-8 bg-background hover:border-primary/40 hover:shadow-lg transition-all duration-300">
+            <div className="fade-in-up-delay-2 border border-border/40 rounded-lg p-6 sm:p-8 bg-background hover:border-primary/40 hover:shadow-lg transition-all duration-300" data-scroll-animate>
               <div className="mb-6 inline-flex p-4 rounded-lg bg-primary/8">
                 <Leaf className="w-6 h-6 text-primary" />
               </div>
@@ -100,7 +121,7 @@ export default function Home() {
             </div>
 
             {/* Card 3 */}
-            <div className="fade-in-up-delay-3 border border-border/40 rounded-lg p-6 sm:p-8 bg-background hover:border-primary/40 hover:shadow-lg transition-all duration-300">
+            <div className="fade-in-up-delay-3 border border-border/40 rounded-lg p-6 sm:p-8 bg-background hover:border-primary/40 hover:shadow-lg transition-all duration-300" data-scroll-animate>
               <div className="mb-6 inline-flex p-4 rounded-lg bg-primary/8">
                 <Shield className="w-6 h-6 text-primary" />
               </div>
@@ -114,7 +135,7 @@ export default function Home() {
       </section>
 
       {/* Hair Clinic - Friday Special Section */}
-      <section className="py-16 sm:py-24 lg:py-32">
+      <section className="py-16 sm:py-24 lg:py-32" data-scroll-animate>
         <div className="container mx-auto px-4 sm:px-6">
           <div className="grid sm:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div className="fade-in-up order-2 sm:order-1">
@@ -156,7 +177,7 @@ export default function Home() {
       </section>
 
       {/* Services Menu */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-secondary border-y border-border/40">
+      <section className="py-16 sm:py-24 lg:py-32 bg-secondary border-y border-border/40" data-scroll-animate>
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mx-auto text-center mb-12 sm:mb-20 fade-in-up">
             <p className="text-primary font-light tracking-widest uppercase text-xs sm:text-sm mb-4">Our Expertise</p>
@@ -184,7 +205,7 @@ export default function Home() {
                 delay: 'fade-in-up-delay-3'
               }
             ].map((service, i) => (
-              <div key={i} className={`${service.delay} border border-border/40 rounded-lg p-6 sm:p-8 bg-background hover:border-primary/40 hover:shadow-lg transition-all duration-300`}>
+              <div key={i} className={`${service.delay} border border-border/40 rounded-lg p-6 sm:p-8 bg-background hover:border-primary/40 hover:shadow-lg transition-all duration-300`} data-scroll-animate>
                 <h4 className="text-lg sm:text-xl font-light mb-3">{service.title}</h4>
                 <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6">{service.description}</p>
                 <Button variant="ghost" className="text-primary hover:bg-primary/10 p-0 font-light">
@@ -197,7 +218,7 @@ export default function Home() {
       </section>
 
       {/* Social Proof Section */}
-      <section className="py-16 sm:py-24 lg:py-32">
+      <section className="py-16 sm:py-24 lg:py-32" data-scroll-animate>
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-4xl mx-auto">
             <div className="fade-in-up text-center mb-12 sm:mb-20">
@@ -257,7 +278,7 @@ export default function Home() {
       </section>
 
       {/* Location & Contact Section */}
-      <section className="py-16 sm:py-24 lg:py-32 border-t border-border/40">
+      <section className="py-16 sm:py-24 lg:py-32 border-t border-border/40" data-scroll-animate>
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-4xl mx-auto">
             <div className="grid sm:grid-cols-2 gap-8 sm:gap-12">
@@ -288,19 +309,19 @@ export default function Home() {
                 <h3 className="text-2xl sm:text-3xl font-light tracking-tight mb-8">Contact Us</h3>
                 
                 <div className="space-y-4">
-                  <a href="https://wa.me/2348126471290" target="_blank" rel="noopener noreferrer" className="flex gap-4 items-center p-4 border border-border/40 rounded-lg hover:bg-secondary hover:border-primary/40 transition-all duration-300 cursor-pointer group">
+                  <a href="https://wa.me/2348012345678" target="_blank" rel="noopener noreferrer" className="flex gap-4 items-center p-4 border border-border/40 rounded-lg hover:bg-secondary hover:border-primary/40 transition-all duration-300 cursor-pointer group" data-scroll-animate>
                     <MessageCircle className="w-5 h-5 text-primary flex-shrink-0 group-hover:scale-110 transition-transform" />
                     <div>
                       <p className="font-light text-sm sm:text-base">WhatsApp</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground">0812 647 1290</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">+234 801 234 5678</p>
                     </div>
                   </a>
 
-                  <a href="tel:+2347062450347" className="flex gap-4 items-center p-4 border border-border/40 rounded-lg hover:bg-secondary hover:border-primary/40 transition-all duration-300 cursor-pointer group">
+                  <a href="tel:+2348012345679" className="flex gap-4 items-center p-4 border border-border/40 rounded-lg hover:bg-secondary hover:border-primary/40 transition-all duration-300 cursor-pointer group" data-scroll-animate>
                     <Phone className="w-5 h-5 text-primary flex-shrink-0 group-hover:scale-110 transition-transform" />
                     <div>
                       <p className="font-light text-sm sm:text-base">Phone</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground">0706 245 0347</p>
+                      <p className="text-xs sm:text-sm text-muted-foreground">+234 801 234 5679</p>
                     </div>
                   </a>
                 </div>
@@ -323,7 +344,7 @@ export default function Home() {
         <>
           {/* WhatsApp Button */}
           <a
-            href="https://wa.me/2348126471290"
+            href="https://wa.me/2348012345678"
             target="_blank"
             rel="noopener noreferrer"
             className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#25D366] hover:bg-[#20BA5A] text-white flex items-center justify-center shadow-xl transition-all hover:scale-110 fade-in hover:shadow-2xl"
@@ -334,7 +355,7 @@ export default function Home() {
 
           {/* Phone Call Button */}
           <a
-            href="tel:+2347062450347"
+            href="tel:+2348012345679"
             className="fixed bottom-28 right-6 sm:bottom-32 sm:right-8 z-50 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground flex items-center justify-center shadow-xl transition-all hover:scale-110 fade-in-delay-1 hover:shadow-2xl"
             aria-label="Call the clinic"
           >

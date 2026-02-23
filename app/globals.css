@@ -119,6 +119,9 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -176,4 +179,14 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+.scroll-fade-in {
+  opacity: 0;
+  animation: fadeIn 0.8s ease-in-out forwards;
+}
+
+.scroll-fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.8s ease-in-out forwards;
 }
