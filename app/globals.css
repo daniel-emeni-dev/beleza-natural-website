@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 :root {
@@ -70,8 +71,6 @@
   --sidebar-border: oklch(0.18 0.03 190);
   --sidebar-ring: oklch(0.72 0.24 170);
 }
-
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @theme inline {
   --font-sans: 'Inter', 'Inter Fallback';
