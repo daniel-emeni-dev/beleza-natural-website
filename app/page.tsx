@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { useScroll, useTransform } from 'framer-motion';
 import { ScrollProgressBar } from '@/components/ScrollProgressBar';
 import { BackToTopButton } from '@/components/BackToTopButton';
+import { HairQuiz } from '@/components/HairQuiz';
 
 const animationVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -23,6 +24,7 @@ const animationVariants = {
 
 export default function Home() {
   const [showFloatingButtons, setShowFloatingButtons] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
   const heroImageRef = useRef(null);
   const aiImageRef = useRef(null);
   const clinicImageRef = useRef(null);
@@ -153,7 +155,10 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <Button className="pulse-glow bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-6 rounded-lg transition-transform hover:scale-105">
+              <Button
+                onClick={() => setShowQuiz(true)}
+                className="pulse-glow bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-6 rounded-lg transition-transform hover:scale-105"
+              >
                 Take Diagnostic Quiz
               </Button>
             </div>
@@ -450,6 +455,26 @@ export default function Home() {
             <Phone className="w-6 h-6 sm:w-7 sm:h-7" />
           </a>
         </>
+      )}
+
+      {/* Quiz Modal */}
+      {showQuiz && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+          >
+            <button
+              onClick={() => setShowQuiz(false)}
+              className="fixed top-4 right-4 z-[101] text-foreground/60 hover:text-foreground text-2xl"
+            >
+              ✕
+            </button>
+            <HairQuiz />
+          </motion.div>
+        </div>
       )}
     </div>
   );
