@@ -3,54 +3,46 @@
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Star, Leaf, Sparkles, Droplets, Shield, MapPin, MessageCircle, Phone, Zap, Brain } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { useScroll, useTransform } from 'framer-motion';
+import { ScrollProgressBar } from '@/components/ScrollProgressBar';
+import { BackToTopButton } from '@/components/BackToTopButton';
+
+const animationVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.8,
+      ease: [0.22, 1, 0.36, 1]
+    }
+  }
+};
 
 export default function Home() {
   const [showFloatingButtons, setShowFloatingButtons] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
+  const heroImageRef = useRef(null);
+  const aiImageRef = useRef(null);
+  const clinicImageRef = useRef(null);
+
+  const { scrollY } = useScroll();
+
+  // Parallax effect for hero image (only on desktop)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const heroY = useTransform(scrollY, [0, 500], [0, isMobile ? 0 : 100]);
+  const aiY = useTransform(scrollY, [500, 1500], [0, isMobile ? 0 : 80]);
+  const clinicY = useTransform(scrollY, [1500, 2500], [0, isMobile ? 0 : 80]);
 
   useEffect(() => {
     setShowFloatingButtons(true);
-
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('scroll-fade-in');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, observerOptions);
-
-    const elements = document.querySelectorAll('[data-scroll-animate]');
-    elements.forEach((el) => {
-      observer.observe(el);
-    });
-
-    const handleScroll = () => {
-      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const scrolled = window.scrollY;
-      setScrollProgress((scrolled / scrollHeight) * 100);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('scroll', handleScroll);
-    };
   }, []);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Scroll progress bar */}
-      <div 
-        className="fixed top-0 left-0 h-1 bg-gradient-to-r from-primary to-primary/50 z-50 transition-all duration-300"
-        style={{ width: `${scrollProgress}%` }}
-      />
+      <ScrollProgressBar />
+      <BackToTopButton />
 
       {/* Glassmorphism Navigation */}
       <nav className="sticky top-0 z-40 glassmorphism border-b border-primary/10 transition-all duration-300">
@@ -68,8 +60,13 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] sm:min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background to-background/80">
-        <div className="absolute inset-0 z-0">
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        variants={animationVariants}
+        className="relative min-h-[90vh] sm:min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-background to-background/80"
+      >
+        <motion.div className="absolute inset-0 z-0" ref={heroImageRef} style={{ y: heroY }}>
           <Image
             src="/hero-diverse-woman.jpg"
             alt="Black woman with natural hair receiving advanced scalp treatment"
@@ -83,7 +80,7 @@ export default function Home() {
             backgroundImage: 'linear-gradient(0deg, rgba(167, 243, 208, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(167, 243, 208, 0.1) 1px, transparent 1px)',
             backgroundSize: '50px 50px'
           }} />
-        </div>
+        </motion.div>
         
         <div className="container mx-auto px-4 sm:px-6 relative z-10 max-w-3xl">
           <div className="fade-in-up space-y-6 sm:space-y-8">
@@ -106,15 +103,20 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Scalp Analysis AI Teaser */}
-      <section className="py-16 sm:py-24 lg:py-32 border-t border-primary/10 relative overflow-hidden bg-secondary" data-scroll-animate>
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        variants={animationVariants}
+        className="py-16 sm:py-24 lg:py-32 border-t border-primary/10 relative overflow-hidden bg-secondary"
+      >
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none" />
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid sm:grid-cols-2 gap-8 sm:gap-12 items-center">
             {/* AI Scanning Animation */}
-            <div className="relative h-72 sm:h-96 rounded-2xl overflow-hidden scan-animation" data-scroll-animate>
+            <motion.div className="relative h-72 sm:h-96 rounded-2xl overflow-hidden scan-animation" ref={aiImageRef} style={{ y: aiY }}>
               <Image
                 src="/scalp-ai-analysis.jpg"
                 alt="AI scalp analysis technology with holographic visualization"
@@ -125,7 +127,7 @@ export default function Home() {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-20 h-20 border-2 border-primary rounded-full animate-spin opacity-50" />
               </div>
-            </div>
+            </motion.div>
 
             {/* Content */}
             <div className="fade-in-up">
@@ -157,10 +159,15 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Expert Scalp Care Section */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-secondary border-y border-primary/10" data-scroll-animate>
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        variants={animationVariants}
+        className="py-16 sm:py-24 lg:py-32 bg-secondary border-y border-primary/10"
+      >
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mx-auto text-center mb-12 sm:mb-20 fade-in-up">
             <p className="text-primary font-semibold tracking-widest uppercase text-xs sm:text-sm mb-4">Specialized Care</p>
@@ -191,10 +198,15 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Hair Clinic - Friday Special */}
-      <section className="py-16 sm:py-24 lg:py-32" data-scroll-animate>
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        variants={animationVariants}
+        className="py-16 sm:py-24 lg:py-32"
+      >
         <div className="container mx-auto px-4 sm:px-6">
           <div className="grid sm:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div className="fade-in-up order-2 sm:order-1">
@@ -226,7 +238,7 @@ export default function Home() {
               </Button>
             </div>
 
-            <div className="fade-in-up-delay-2 relative h-72 sm:h-96 rounded-2xl overflow-hidden order-1 sm:order-2 scan-animation" data-scroll-animate>
+            <motion.div className="fade-in-up-delay-2 relative h-72 sm:h-96 rounded-2xl overflow-hidden order-1 sm:order-2 scan-animation" ref={clinicImageRef} style={{ y: clinicY }}>
               <Image
                 src="/woman-with-locs.jpg"
                 alt="Black woman with locs receiving specialized hair clinic treatment"
@@ -234,13 +246,18 @@ export default function Home() {
                 className="object-cover hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-background/40 to-transparent" />
-            </div>
+            </motion.div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Services Menu */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-secondary border-y border-primary/10" data-scroll-animate>
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        variants={animationVariants}
+        className="py-16 sm:py-24 lg:py-32 bg-secondary border-y border-primary/10"
+      >
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mx-auto text-center mb-12 sm:mb-20 fade-in-up">
             <p className="text-primary font-semibold tracking-widest uppercase text-xs sm:text-sm mb-4">Premium Services</p>
@@ -275,10 +292,15 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Social Proof */}
-      <section className="py-16 sm:py-24 lg:py-32" data-scroll-animate>
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        variants={animationVariants}
+        className="py-16 sm:py-24 lg:py-32"
+      >
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-4xl mx-auto">
             <div className="fade-in-up text-center mb-12 sm:mb-20">
@@ -311,10 +333,15 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* CTA Section */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-secondary border-t border-primary/10 relative overflow-hidden">
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        variants={animationVariants}
+        className="py-16 sm:py-24 lg:py-32 bg-secondary border-t border-primary/10 relative overflow-hidden"
+      >
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-0 left-1/4 w-64 h-64 bg-primary rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-primary rounded-full blur-3xl" />
@@ -335,10 +362,15 @@ export default function Home() {
             </Button>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Location & Contact */}
-      <section className="py-16 sm:py-24 lg:py-32 border-t border-primary/10" data-scroll-animate>
+      <motion.section
+        initial="hidden"
+        whileInView="visible"
+        variants={animationVariants}
+        className="py-16 sm:py-24 lg:py-32 border-t border-primary/10"
+      >
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-4xl mx-auto">
             <div className="grid sm:grid-cols-2 gap-8 sm:gap-12">
@@ -387,7 +419,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Footer */}
       <footer className="border-t border-primary/10 py-8 sm:py-12 bg-secondary">
