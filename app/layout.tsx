@@ -1,16 +1,16 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Inter, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: '--font-sans' });
+const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-serif' });
 
 export const metadata: Metadata = {
-  title: 'Beleza Natural Hair Clinic | Advanced Scalp & Hair Care',
-  description: 'Premium dermatological hair clinic specializing in scalp health, hair loss treatment, and natural hair care. Expert consultations and Friday clinics.',
+  title: 'Beleza Natural Hair Clinic | Futuristic Hair & Scalp Care',
+  description: 'Next-generation hair clinic with AI scalp analysis, dermatological expertise, and holistic hair wellness. Specialized care for Black women with natural hair.',
   generator: 'v0.app',
-  themeColor: '#89986D',
+  themeColor: '#a7f3d0',
   icons: {
     icon: [
       {
@@ -36,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <body className="font-sans antialiased">
         {children}
         <Analytics />
