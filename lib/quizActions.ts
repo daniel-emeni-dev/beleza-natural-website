@@ -30,7 +30,10 @@ export async function saveQuizResults(data: QuizData) {
 
     if (error) {
       console.error('[v0] Supabase error:', error);
-      throw new Error(`Database error: ${error.message}`);
+      const errorMsg = error.message || 'Unknown database error';
+      const errorCode = error.code || 'NO_CODE';
+      const errorHint = error.hint || 'No additional information';
+      throw new Error(`${errorMsg} (Code: ${errorCode}) - ${errorHint}`);
     }
 
     console.log('[v0] Quiz results saved successfully:', result);

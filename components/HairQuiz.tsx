@@ -64,9 +64,11 @@ export function HairQuiz() {
         const encodedMessage = encodeURIComponent(message);
         window.open(`https://wa.me/2348012345678?text=${encodedMessage}`, '_blank');
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving quiz results:', error);
-      alert('Error saving results. Please try again.');
+      const errorMessage = error.message || 'Unknown error';
+      const errorDetails = error.details || error.code || 'No additional details';
+      alert(`Database Error: ${errorMessage} - ${errorDetails}`);
     } finally {
       setLoading(false);
     }

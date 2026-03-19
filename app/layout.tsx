@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
@@ -10,7 +10,6 @@ export const metadata: Metadata = {
   title: 'Beleza Natural Hair Clinic | Futuristic Hair & Scalp Care',
   description: 'Next-generation hair clinic with AI scalp analysis, dermatological expertise, and holistic hair wellness. Specialized care for Black women with natural hair.',
   generator: 'v0.app',
-  themeColor: '#a7f3d0',
   icons: {
     icon: [
       {
@@ -28,6 +27,10 @@ export const metadata: Metadata = {
     ],
     apple: '/apple-icon.png',
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#a7f3d0',
 }
 
 export default function RootLayout({
