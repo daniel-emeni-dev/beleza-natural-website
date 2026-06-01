@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { Loader2, CheckCircle2 } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { saveQuizResults } from '@/lib/quizActions';
 
 interface QuizState {
@@ -30,43 +30,54 @@ export function HairQuiz() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [quizData, setQuizData] = useState<QuizState>({
-    fullName: '',
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [quizData, setQuizData] = useState<QuizState>(({
+    fullName: '', 
     phoneNumber: '',
     hairType: '',
     porosity: '',
     scalpIssue: ''
-  });
+  }));
 
   const hairTypes = ['4C', '4B', '4A', '3C', '3B', '3A', '2C', '2B', '2A', '1C', '1B', '1A'];
   const porosityOptions = ['High', 'Medium', 'Low'];
-  const scalpIssues = ['Dryness', 'Oiliness', 'Flaking', 'Sensitivity', 'Buildup', 'None'];
-
-  const handleInputChange = (field: keyof QuizState, value: string) => {
-    setQuizData(prev => ({ ...prev, [field]: value }));
-  };
+  const scalpIssues = ['Dryness', 'Oiliness', 'Flaking', 'Sensitivity', 'Healthy'];
 
   const handleNext = () => {
-    if (step < 5) {
-      setStep(step + 1);
-    }
+    setServerError(null); // Clear errors when moving forward
+    setStep((prev) => prev + 1);
+  };
+
+  const handleBack = () => {
+    setServerError(null);
+    setStep((prev) => prev - 1);
   };
 
   const handleSubmit = async () => {
     setLoading(true);
+    setServerError(null);
+
     try {
-      await saveQuizResults(quizData);
-      setSuccess(true);
-      
-      // Redirect to WhatsApp after 2 seconds
-      setTimeout(() => {
-        const message = `Hello! I just completed the Beleza Natural Hair Diagnostic Quiz. Here are my results: Hair Type: ${quizData.hairType}, Porosity: ${quizData.porosity}, Scalp Issue: ${quizData.scalpIssue}`;
-        const encodedMessage = encodeURIComponent(message);
-        window.open(`https://wa.me/2348012345678?text=${encodedMessage}`, '_blank');
-      }, 2000);
-    } catch (error) {
-      console.error('Error saving quiz results:', error);
-      alert('Error saving results. Please try again.');
+      // Cast the string options exactly into the literal types expected by Zod
+      const payload = {
+        fullName: quizData.fullName.trim(),
+        phoneNumber: quizData.phoneNumber.trim(),
+        hairType: quizData.hairType as any,
+        porosity: quizData.porosity as any,
+        scalpIssue: quizData.scalpIssue.trim(),
+      };
+
+      const result = await saveQuizResults(payload);
+
+      if (result.success) {
+        setSuccess(true);
+      } else {
+        // Capture specific backend Zod or Database messages directly
+        setServerError(result.error || 'An error occurred while saving your data.');
+      }
+    } catch (err) {
+      console.error('[Frontend Exception] Submission failure:', err);
+      setServerError('A network connectivity or server fault occurred.');
     } finally {
       setLoading(false);
     }
@@ -77,170 +88,131 @@ export function HairQuiz() {
       initial="hidden"
       animate="visible"
       variants={animationVariants}
-      className="w-full max-w-2xl mx-auto p-6 bg-secondary border border-primary/10 rounded-2xl glassmorphism"
+      className="w-full bg-card p-6 sm:p-8 rounded-2xl shadow-xl border border-primary/10 relative"
     >
       {success ? (
-        <div className="text-center space-y-4">
-          <CheckCircle2 className="w-16 h-16 text-primary mx-auto animate-bounce" />
-          <h2 className="text-2xl font-serif font-semibold text-foreground">Results Saved!</h2>
-          <p className="text-foreground/70">Redirecting to WhatsApp to connect with our specialists...</p>
+        <div className="text-center py-8 space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/20 text-primary mb-2">
+            <CheckCircle2 className="w-10 h-10" />
+          </div>
+          <h3 className="text-2xl font-serif font-semibold text-foreground">Analysis Complete</h3>
+          <p className="text-foreground/70 max-w-md mx-auto font-light">
+            Your clinical profile and scalp assessment have been logged. A trichology expert will review your metrics shortly.
+          </p>
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Step 1: Full Name */}
-          {step === 0 && (
-            <motion.div initial="hidden" animate="visible" variants={animationVariants} className="space-y-4">
+          {/* Section Header */}
+          <div className="space-y-2">
+            <h3 className="text-xl sm:text-2xl font-serif font-semibold text-foreground">
+              {step === 0 && 'Welcome to Beleza Analysis'}
+              {step === 1 && 'What is your Name?'}
+              {step === 2 && 'What is your Phone Number?'}
+              {step === 3 && 'Identify your Hair Type'}
+              {step === 4 && 'Determine your Hair Porosity'}
+              {step === 5 && 'Primary Scalp Concern'}
+            </h3>
+            <p className="text-xs sm:text-sm text-muted-foreground font-light">
+              {step <= 2 ? 'Personal Demographics' : 'Clinical Variables'}
+            </p>
+          </div>
+
+          {/* Server Error Alert Display */}
+          {serverError && (
+            <div className="flex items-start gap-3 bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-xl animate-fade-in">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
-                <h2 className="text-2xl font-serif font-semibold text-foreground mb-2">Your Hair Profile</h2>
-                <p className="text-foreground/70">Let's get to know your hair better</p>
+                <span className="font-semibold">Submission halted:</span> {serverError}
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">Full Name</label>
+            </div>
+          )}
+
+          {/* Form Step Inputs */}
+          <div className="min-h-[100px] flex items-center">
+            {step === 0 && (
+              <p className="text-foreground/80 font-light leading-relaxed">
+                This diagnostic matches your unique hair characteristics against targeted treatments. Please provide authentic inputs for an accurate configuration.
+              </p>
+            )}
+
+            {step === 1 && (
+              <div className="w-full">
                 <input
                   type="text"
-                  placeholder="Enter your full name"
+                  placeholder="Enter full name"
                   value={quizData.fullName}
-                  onChange={(e) => handleInputChange('fullName', e.target.value)}
-                  className="w-full px-4 py-3 bg-background border border-primary/20 rounded-lg focus:outline-none focus:border-primary transition-colors"
+                  onChange={(e) => setQuizData({ ...quizData, fullName: e.target.value })}
+                  className="w-full bg-background border border-primary/20 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
                 />
               </div>
-            </motion.div>
-          )}
+            )}
 
-          {/* Step 2: Phone Number */}
-          {step === 1 && (
-            <motion.div initial="hidden" animate="visible" variants={animationVariants} className="space-y-4">
-              <div>
-                <h2 className="text-2xl font-serif font-semibold text-foreground mb-2">Contact Information</h2>
-                <p className="text-foreground/70">We'll use this to follow up with your results</p>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">Phone Number</label>
+            {step === 2 && (
+              <div className="w-full">
                 <input
                   type="tel"
-                  placeholder="+234 xxx xxx xxxx"
+                  placeholder="e.g. +234 801 234 5678"
                   value={quizData.phoneNumber}
-                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                  className="w-full px-4 py-3 bg-background border border-primary/20 rounded-lg focus:outline-none focus:border-primary transition-colors"
+                  onChange={(e) => setQuizData({ ...quizData, phoneNumber: e.target.value })}
+                  className="w-full bg-background border border-primary/20 rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-primary transition-colors"
                 />
               </div>
-            </motion.div>
-          )}
+            )}
 
-          {/* Step 3: Hair Type */}
-          {step === 2 && (
-            <motion.div initial="hidden" animate="visible" variants={animationVariants} className="space-y-4">
-              <div>
-                <h2 className="text-2xl font-serif font-semibold text-foreground mb-2">Hair Type</h2>
-                <p className="text-foreground/70">Select your hair type (Andre's Classification)</p>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {hairTypes.map(type => (
-                  <button
+            {step === 3 && (
+              <div className="grid grid-cols-3 gap-2 w-full">
+                {hairTypes.map((type) => (
+                  <Button
                     key={type}
-                    onClick={() => handleInputChange('hairType', type)}
-                    className={`py-3 px-4 rounded-lg font-semibold transition-all ${
-                      quizData.hairType === type
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background border border-primary/20 text-foreground hover:border-primary/40'
-                    }`}
+                    variant={quizData.hairType === type ? 'default' : 'outline'}
+                    onClick={() => setQuizData({ ...quizData, hairType: type })}
+                    className="rounded-xl py-4"
                   >
                     {type}
-                  </button>
+                  </Button>
                 ))}
               </div>
-            </motion.div>
-          )}
+            )}
 
-          {/* Step 4: Porosity */}
-          {step === 3 && (
-            <motion.div initial="hidden" animate="visible" variants={animationVariants} className="space-y-4">
-              <div>
-                <h2 className="text-2xl font-serif font-semibold text-foreground mb-2">Hair Porosity</h2>
-                <p className="text-foreground/70">How easily does your hair absorb moisture?</p>
-              </div>
-              <div className="space-y-2">
-                {porosityOptions.map(option => (
-                  <button
-                    key={option}
-                    onClick={() => handleInputChange('porosity', option)}
-                    className={`w-full py-3 px-4 rounded-lg font-semibold transition-all text-left ${
-                      quizData.porosity === option
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background border border-primary/20 text-foreground hover:border-primary/40'
-                    }`}
+            {step === 4 && (
+              <div className="flex flex-col gap-2 w-full">
+                {porosityOptions.map((opt) => (
+                  <Button
+                    key={opt}
+                    variant={quizData.porosity === opt ? 'default' : 'outline'}
+                    onClick={() => setQuizData({ ...quizData, porosity: opt })}
+                    className="rounded-xl py-6 text-left justify-start px-6"
                   >
-                    {option}
-                  </button>
+                    {opt} Porosity
+                  </Button>
                 ))}
               </div>
-            </motion.div>
-          )}
+            )}
 
-          {/* Step 5: Scalp Issue */}
-          {step === 4 && (
-            <motion.div initial="hidden" animate="visible" variants={animationVariants} className="space-y-4">
-              <div>
-                <h2 className="text-2xl font-serif font-semibold text-foreground mb-2">Scalp Concerns</h2>
-                <p className="text-foreground/70">What's your main scalp concern?</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {scalpIssues.map(issue => (
-                  <button
+            {step === 5 && (
+              <div className="flex flex-col gap-2 w-full">
+                {scalpIssues.map((issue) => (
+                  <Button
                     key={issue}
-                    onClick={() => handleInputChange('scalpIssue', issue)}
-                    className={`py-3 px-4 rounded-lg font-semibold transition-all ${
-                      quizData.scalpIssue === issue
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background border border-primary/20 text-foreground hover:border-primary/40'
-                    }`}
+                    variant={quizData.scalpIssue === issue ? 'default' : 'outline'}
+                    onClick={() => setQuizData({ ...quizData, scalpIssue: issue })}
+                    className="rounded-xl py-6 text-left justify-start px-6"
                   >
                     {issue}
-                  </button>
+                  </Button>
                 ))}
               </div>
-            </motion.div>
-          )}
+            )}
+          </div>
 
-          {/* Step 6: Review & Submit */}
-          {step === 5 && (
-            <motion.div initial="hidden" animate="visible" variants={animationVariants} className="space-y-4">
-              <div>
-                <h2 className="text-2xl font-serif font-semibold text-foreground mb-2">Review Your Results</h2>
-                <p className="text-foreground/70">Confirm your information before submitting</p>
-              </div>
-              <div className="space-y-3 bg-background rounded-lg p-4 border border-primary/10">
-                <div>
-                  <p className="text-sm text-foreground/60">Full Name</p>
-                  <p className="font-semibold text-foreground">{quizData.fullName}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-foreground/60">Phone Number</p>
-                  <p className="font-semibold text-foreground">{quizData.phoneNumber}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-foreground/60">Hair Type</p>
-                  <p className="font-semibold text-foreground">{quizData.hairType}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-foreground/60">Porosity</p>
-                  <p className="font-semibold text-foreground">{quizData.porosity}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-foreground/60">Scalp Issue</p>
-                  <p className="font-semibold text-foreground">{quizData.scalpIssue}</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div className="flex gap-3 pt-6">
+          {/* Footer Action Controller Navigation */}
+          <div className="flex gap-4 pt-4 border-t border-primary/10">
             {step > 0 && (
               <Button
                 variant="outline"
-                onClick={() => setStep(step - 1)}
-                className="flex-1 border-primary/20 text-primary hover:bg-primary/10"
+                onClick={handleBack}
+                disabled={loading}
+                className="flex-1 rounded-xl transition-all border-primary/20 text-foreground hover:bg-primary/5"
               >
                 Back
               </Button>
@@ -248,8 +220,8 @@ export function HairQuiz() {
             {step < 5 ? (
               <Button
                 onClick={handleNext}
-                disabled={!Object.values(quizData)[step]}
-                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground transition-transform hover:scale-105"
+                disabled={step === 1 ? !quizData.fullName : step === 2 ? !quizData.phoneNumber : step === 3 ? !quizData.hairType : step === 4 ? !quizData.porosity : false}
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground transition-transform hover:scale-105 rounded-xl"
               >
                 Next
               </Button>
@@ -257,23 +229,23 @@ export function HairQuiz() {
               <Button
                 onClick={handleSubmit}
                 disabled={loading || !quizData.fullName || !quizData.phoneNumber || !quizData.hairType || !quizData.porosity || !quizData.scalpIssue}
-                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground transition-transform hover:scale-105"
+                className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground transition-transform hover:scale-105 rounded-xl"
               >
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    Saving System Data...
                   </>
                 ) : (
-                  'Submit & Get Recommendations'
+                  'Submit Evaluation'
                 )}
               </Button>
             )}
           </div>
 
-          {/* Progress Indicator */}
+          {/* Stepper Progress Bars */}
           <div className="flex gap-1 mt-6">
-            {[0, 1, 2, 3, 4, 5].map(i => (
+            {[0, 1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
                 className={`h-1 flex-1 rounded-full transition-colors ${
