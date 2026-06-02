@@ -37,24 +37,66 @@ const QUIZ_STEPS = [
   }
 ];
 
-// Clinical mapping matrix for real-time routines
-const ROUTINE_MATRIX: Record<string, { summary: string; steps: string[]; products: string[] }> = {
-  low: {
-    summary: "Your cuticles are tightly closed, blocking moisture entry. Prioritize lightweight humectants and indirect steam activation to open up the hair shafts safely.",
-    steps: ["Clarify with warm water to lift stubborn cuticles.", "Apply deep treatments using indirect heat or a warm plastic cap.", "Avoid heavy oils like raw shea butter which cause surface buildup."],
-    products: ["Glycerin-based leave-in serums", "Lightweight sweet almond oil", "Hydrolyzed protein treatments"]
-  },
-  high: {
-    summary: "Your cuticles are widely separated or damaged, letting moisture escape just as fast as it enters. Focus on structural protein reinforcement and dense sealant barriers.",
-    steps: ["Incorporate routine protein rinses to fill structural gaps.", "Layer using the LOC/LCO method (Liquid, Cream, Oil).", "Rinse with cool water to encourage mechanical cuticle closure."],
-    products: ["Heavy black castor oil", "Amino acid repair masques", "Shea butter-infused sealants"]
-  },
-  medium: {
-    summary: "Your cuticles are perfectly balanced, absorbing and holding hydration optimally. Focus on preventative maintenance and lightweight fluid stabilization.",
-    steps: ["Maintain standard weekly hydration washing intervals.", "Protect hair nightly using a premium silk or satin wrap.", "Alternate balance smoothly between pure moisture and protein masques."],
-    products: ["Jojoba oil balancing mist", "Aloe vera leave-in conditioners", "Gentle sulfate-free cleansers"]
+// Phase 2: Dynamic Decision Matrix Engine Execution Handler
+function generateClinicalRoutine(answers: Record<string, string>) {
+  let summary = "";
+  let steps: string[] = [];
+  let products: string[] = [];
+
+  // --- 1. BASE LAYER: POROSITY HYDRATION CHANNELING ---
+  if (answers.porosity === "low") {
+    summary = "Your cuticles are tightly closed, creating a dense biological barrier that locks moisture out.";
+    steps = [
+      "Clarify with warm water to gently lift stubborn, closed cuticles before applying treatments.",
+      "Apply deep conditioning masques underneath indirect heat or a warm plastic cap to force moisture absorption.",
+      "Incorporate lightweight, water-soluble humectants that slip easily beneath the cuticle layer."
+    ];
+    products = ["Glycerin-based leave-in serums", "Lightweight sweet almond oil", "Hydrolyzed protein treatments"];
+  } else if (answers.porosity === "high") {
+    summary = "Your cuticles are widely separated or structurally compromised, letting moisture escape just as fast as it enters.";
+    steps = [
+      "Incorporate regular protein rinses to structurally fill gaps along your fragmented cuticle scales.",
+      "Layer your hydration strictly using the LOC/LCO method (Liquid, Cream, Oil) to lock in water layers.",
+      "Rinse out conditioners with cool water to induce mechanical contraction and close the cuticles."
+    ];
+    products = ["Heavy black castor oil", "Amino acid repair masques", "Shea butter-infused sealants"];
+  } else {
+    summary = "Your cuticles are perfectly balanced, absorbing, transmitting, and retaining vital hydration optimally.";
+    steps = [
+      "Maintain a consistent weekly hydration washing interval to sustain your natural moisture balance.",
+      "Protect your delicate fiber structure nightly using a premium silk or satin wrap.",
+      "Alternate smoothly between pure moisture therapies and light protein reinforcing masques."
+    ];
+    products = ["Jojoba oil balancing mist", "Aloe vera leave-in conditioners", "Gentle sulfate-free cleansers"];
   }
-};
+
+  // --- 2. SECONDARY LAYER: SCALP INTERCEPTION MODIFIERS ---
+  if (answers.scalp_hydration === "oily") {
+    summary += " Because your sebum profile is overactive, your protocol focuses heavily on stabilizing the root ecosystem and avoiding heavy buildup.";
+    steps.unshift("Execute a targeted scalp-only double cleanse during washdays to break down oxidized sebum sheets.");
+    products.push("Salicylic acid scalp pre-treatment");
+    
+    // SAFETY REFACTOR (Con Avoided): Filter out heavy sealants or blocking butters if scalp is oily
+    products = products.filter(p => !p.includes("Heavy") && !p.includes("butter") && !p.includes("castor"));
+  } else if (answers.scalp_hydration === "dry") {
+    summary += " Additionally, your scalp moisture barrier is slightly compromised, requiring extra lipid replenishment at the base.";
+    steps.push("Massage a botanical lipid directly onto clean scalp skin post-wash to reduce flaking and itching.");
+    products.push("Soothing tea tree scalp serum");
+  } else {
+    summary += " Your scalp sebum production is perfectly stable, providing an ideal, healthy foundation for hair growth.";
+  }
+
+  // --- 3. TERTIARY LAYER: TEXTURE MATRICES ---
+  if (answers.texture === "coily") {
+    steps.push("Utilize low-tension protective styling methods to buffer high mechanical shrinkage stress and eliminate split-end fraying.");
+  } else if (answers.texture === "curly") {
+    steps.push("Apply stylers when your hair is soaking wet to maximize definition and minimize ambient frizz formation.");
+  } else if (answers.texture === "wavy") {
+    steps.push("Prioritize lightweight styling mists and foams rather than heavy custards to maximize volume along your S-shaped hair matrix.");
+  }
+
+  return { summary, steps, products };
+}
 
 interface HairQuizProps {
   onClose: () => void;
@@ -175,7 +217,8 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
 
   // 2. RESULTS VIEW: Display personalized dashboard configuration
   if (showResults) {
-    const routine = ROUTINE_MATRIX[answers.porosity] || ROUTINE_MATRIX.medium;
+    // Generate routine dynamically by routing state answers directly through the matrix compiler
+    const routine = generateClinicalRoutine(answers);
     
     return (
       <div className="space-y-6 text-left animate-in fade-in slide-in-from-bottom-4 duration-500 print:p-6">
