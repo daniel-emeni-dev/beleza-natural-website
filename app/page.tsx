@@ -50,6 +50,18 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // FIX 2: Lock the body background scrolling when the modal active state triggers
+  useEffect(() => {
+    if (showQuiz) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showQuiz]);
+
   return (
     <div className="min-h-screen bg-background font-sans relative overflow-x-hidden selection:bg-primary/10">
       
@@ -150,7 +162,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { icon: Scissors, label: "Porosity Profile", desc: "Measures cuticle moisture absorption capacity and moisture retention retention thresholds." },
+              { icon: Scissors, label: "Porosity Profile", desc: "Measures cuticle moisture absorption capacity and moisture retention thresholds." },
               { icon: Droplet, label: "Scalp Hydration", desc: "Evaluates sebum production profiles to stabilize moisture barrier profiles smoothly." },
               { icon: Wind, label: "Elasticity & Density", desc: "Maps structural protein tensile limits against breakage risk variables." },
               { icon: User, label: "Follicle Patterns", desc: "Identifies explicit tight coils, wavy matrices, or fine curl patterns perfectly." }
@@ -177,7 +189,7 @@ export default function LandingPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowQuiz(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-xs"
+              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
             />
             
             {/* Center Modal Card Container */}
@@ -186,10 +198,13 @@ export default function LandingPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="bg-card w-full max-w-lg rounded-3xl border border-border shadow-2xl relative overflow-hidden z-10 p-6 sm:p-8"
+              /* FIX 1: Max-height bounds and native independent scroll containers */
+              className="bg-card w-full max-w-xl rounded-3xl border border-border shadow-2xl relative z-10 flex flex-col max-h-[85vh] sm:max-h-[90vh]"
             >
-              {/* The clean instance: HairQuiz completely owns the inside layout framework */}
-              <HairQuiz onClose={() => setShowQuiz(false)} />
+              <div className="overflow-y-auto p-6 sm:p-8 custom-scrollbar">
+                {/* The clean instance: HairQuiz completely owns the inside layout framework */}
+                <HairQuiz onClose={() => setShowQuiz(false)} />
+              </div>
             </motion.div>
           </div>
         )}
