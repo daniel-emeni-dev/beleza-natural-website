@@ -303,7 +303,7 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
               <p className="text-xs text-muted-foreground print:text-neutral-500">Your trichology profile generated instantly</p>
             </div>
           </div>
-          
+              
           <button
             onClick={() => window.print()}
             className="text-xs font-medium px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground print:hidden flex items-center gap-1.5"
