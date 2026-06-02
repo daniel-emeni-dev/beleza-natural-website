@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { ChevronRight, ChevronLeft, Sparkles, Check, Loader2, RotateCcw, Droplets, Activity, Layers } from "lucide-react";
+import { ChevronRight, ChevronLeft, Sparkles, Check, Loader2, RotateCcw, Droplets, Activity, Layers, LogIn, UserPlus } from "lucide-react";
 
 const QUIZ_STEPS = [
   {
@@ -113,6 +113,14 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [recordId, setRecordId] = useState<number | null>(null);
+
+  // Phase 4 Auth Lifecycle Integration States
+  const [authMode, setAuthMode] = useState<"signup" | "signin" | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [authSuccess, setAuthSuccess] = useState(false);
 
   const stepData = QUIZ_STEPS[currentStep];
   const isLastStep = currentStep === QUIZ_STEPS.length - 1;
@@ -122,7 +130,6 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
   };
 
   const handleNext = async () => {
-    // Guard clause to ensure an option is selected and we aren't already working
     if (!answers[stepData.id] || isSubmitting) return;
     
     if (isLastStep) {
@@ -138,37 +145,75 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
       };
 
       try {
-        // Enforce a strict timeout or let Supabase make the network request
-        const { error } = await supabase
+        // Submit record anonymously
+        const { data, error } = await supabase
           .from("diagnostics")
-          .insert([payload]);
+          .insert([payload])
+          .select("id")
+          .single();
 
         if (error) throw error;
         
-        // Success pathway
+        if (data) setRecordId(data.id);
         setShowResults(true);
       } catch (error: any) {
         console.warn("Supabase transmission failed. Activating Phase 3 Resilience Layer...", error);
         
         try {
-          // OFFLINE SAFETY CAPTURE (Con Avoided: No dead ends for the user)
           const backupQueue = JSON.parse(localStorage.getItem("beleza_offline_sync") || "[]");
           backupQueue.push(payload);
           localStorage.setItem("beleza_offline_sync", JSON.stringify(backupQueue));
           
-          // Move them forward anyway! The user gets their premium analysis regardless of network drops.
           setShowResults(true);
         } catch (localStorageError) {
-          // Utter worst-case fallback if localStorage is full/disabled
           setSubmitError("Critical system error. Please verify your connection and try again.");
           setIsSubmitting(false);
         }
       } finally {
-        // Only unlock if we didn't advance views
         if (!isLastStep) setIsSubmitting(false);
       }
     } else {
       setCurrentStep((prev) => prev + 1);
+    }
+  };
+
+  // Phase 4: Lifecycle Account Linking Action Handler
+  const handleSaveAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password || isAuthLoading) return;
+
+    setIsAuthLoading(true);
+    setSubmitError(null);
+
+    try {
+      let authUser_Id = "";
+
+      if (authMode === "signup") {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        if (data?.user) authUser_Id = data.user.id;
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        if (data?.user) authUser_Id = data.user.id;
+      }
+
+      // If we have an active live record ID from this session, merge it with the authenticated account
+      if (recordId && authUser_Id) {
+        const { error: patchError } = await supabase
+          .from("diagnostics")
+          .update({ user_id: authUser_Id })
+          .eq("id", recordId);
+
+        if (patchError) console.error("Non-blocking state merger mismatch:", patchError);
+      }
+
+      setAuthSuccess(true);
+      setAuthMode(null);
+    } catch (err: any) {
+      setSubmitError(err.message || "Authentication lifecycle synchronization failed.");
+    } finally {
+      setIsAuthLoading(false);
     }
   };
 
@@ -186,9 +231,14 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
     setSubmitError(null);
     setUserName("");
     setIsStarted(false);
+    setRecordId(null);
+    setAuthMode(null);
+    setAuthSuccess(false);
+    setEmail("");
+    setPassword("");
   };
 
-  // 1. WELCOME STEP: Prompt for personalization before firing metrics engine
+  // 1. WELCOME STEP
   if (!isStarted) {
     return (
       <div className="space-y-6 text-left animate-in fade-in duration-300">
@@ -211,12 +261,11 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
           <input
             type="text"
             placeholder="e.g. Daniel"
-            maxLength={25} // Prevents layout explosion
+            maxLength={25}
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
             className="w-full h-11 bg-secondary/30 rounded-xl border border-border px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
             onKeyDown={(e) => {
-              // Check trim() to prevent spaces-only progression
               if (e.key === 'Enter' && userName.trim() && !isSubmitting) setIsStarted(true);
             }}
           />
@@ -236,9 +285,8 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
     );
   }
 
-  // 2. RESULTS VIEW: Display personalized dashboard configuration
+  // 2. RESULTS VIEW
   if (showResults) {
-    // Generate routine dynamically by routing state answers directly through the matrix compiler
     const routine = generateClinicalRoutine(answers);
     
     return (
@@ -319,6 +367,94 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
           </div>
         </div>
 
+        {/* --- PHASE 4: GUEST-TO-USER LIFECYCLE HOOK AREA --- */}
+        <div className="mt-6 p-4 rounded-xl border border-primary/10 bg-primary/[0.01] print:hidden space-y-4">
+          {authSuccess ? (
+            <div className="flex items-center gap-2.5 text-xs sm:text-sm text-emerald-600 font-medium animate-in fade-in">
+              <div className="h-5 w-5 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
+                <Check className="w-3 h-3 stroke-[3]" />
+              </div>
+              Protocol successfully locked down to your private profile dashboard!
+            </div>
+          ) : !authMode ? (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h5 className="text-sm font-medium text-foreground">Save routine permanently?</h5>
+                <p className="text-xs text-muted-foreground">Store your customized prescription so you can access it on any device.</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => setAuthMode("signup")}
+                  className="inline-flex items-center gap-1 px-3 h-8 rounded-full text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  <UserPlus className="w-3 h-3" /> Create Account
+                </button>
+                <button
+                  onClick={() => setAuthMode("signin")}
+                  className="inline-flex items-center gap-1 px-3 h-8 rounded-full text-xs font-medium border border-border hover:bg-secondary text-foreground transition-colors"
+                >
+                  <LogIn className="w-3 h-3" /> Sign In
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSaveAccount} className="space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  {authMode === "signup" ? "Account Provisioning" : "Verify Credentials"}
+                </span>
+                <button 
+                  type="button" 
+                  onClick={() => setAuthMode(null)}
+                  className="text-xs text-muted-foreground hover:text-foreground underline decoration-dotted"
+                >
+                  Cancel
+                </button>
+              </div>
+              
+              {submitError && (
+                <div className="p-2 text-xs rounded-lg bg-destructive/10 text-destructive border border-destructive/10">
+                  {submitError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-9 rounded-lg bg-secondary/40 border border-border px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <input
+                  type="password"
+                  placeholder="Password (min 6 chars)"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-9 rounded-lg bg-secondary/40 border border-border px-3 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isAuthLoading}
+                className="w-full h-9 rounded-lg bg-foreground text-background text-xs font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5"
+              >
+                {isAuthLoading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : authMode === "signup" ? (
+                  "Register & Link Routine"
+                ) : (
+                  "Authenticate & Secure Routine"
+                )}
+              </button>
+            </form>
+          )}
+        </div>
+
         {/* Modal Action Toggles Footer */}
         <div className="flex items-center justify-between pt-4 border-t border-border/60 print:hidden">
           <button
@@ -378,7 +514,7 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
           return (
             <button
               key={option.value}
-              disabled={isSubmitting} // Locks option changes mid-flight
+              disabled={isSubmitting}
               onClick={() => handleSelectOption(option.value)}
               className={`w-full text-left p-4 rounded-xl border transition-all duration-200 flex items-start gap-3 group relative ${
                 isSelected 
@@ -409,7 +545,7 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
       <div className="flex items-center justify-between pt-4 border-t border-border/60">
         <button
           onClick={handleBack}
-          disabled={currentStep === 0 || isSubmitting} // Lock back navigation during submission
+          disabled={currentStep === 0 || isSubmitting}
           className="inline-flex items-center gap-1.5 px-4 h-10 rounded-full text-xs font-medium border border-border hover:bg-secondary disabled:opacity-30 disabled:pointer-events-none transition-colors"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
