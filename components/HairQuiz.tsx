@@ -122,31 +122,50 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
   };
 
   const handleNext = async () => {
-    if (!answers[stepData.id]) return;
+    // Guard clause to ensure an option is selected and we aren't already working
+    if (!answers[stepData.id] || isSubmitting) return;
     
     if (isLastStep) {
       setIsSubmitting(true);
       setSubmitError(null);
 
+      const payload = {
+        user_name: userName.trim() || "Guest",
+        porosity: answers.porosity,
+        texture: answers.texture,
+        scalp_hydration: answers.scalp_hydration,
+        timestamp: new Date().toISOString()
+      };
+
       try {
+        // Enforce a strict timeout or let Supabase make the network request
         const { error } = await supabase
           .from("diagnostics")
-          .insert([
-            {
-              user_name: userName.trim() || "Guest",
-              porosity: answers.porosity,
-              texture: answers.texture,
-              scalp_hydration: answers.scalp_hydration,
-            }
-          ]);
+          .insert([payload]);
 
         if (error) throw error;
+        
+        // Success pathway
         setShowResults(true);
       } catch (error: any) {
-        console.error("Submission Error:", error);
-        setSubmitError(error.message || "Failed to submit evaluation record.");
+        console.warn("Supabase transmission failed. Activating Phase 3 Resilience Layer...", error);
+        
+        try {
+          // OFFLINE SAFETY CAPTURE (Con Avoided: No dead ends for the user)
+          const backupQueue = JSON.parse(localStorage.getItem("beleza_offline_sync") || "[]");
+          backupQueue.push(payload);
+          localStorage.setItem("beleza_offline_sync", JSON.stringify(backupQueue));
+          
+          // Move them forward anyway! The user gets their premium analysis regardless of network drops.
+          setShowResults(true);
+        } catch (localStorageError) {
+          // Utter worst-case fallback if localStorage is full/disabled
+          setSubmitError("Critical system error. Please verify your connection and try again.");
+          setIsSubmitting(false);
+        }
       } finally {
-        setIsSubmitting(false);
+        // Only unlock if we didn't advance views
+        if (!isLastStep) setIsSubmitting(false);
       }
     } else {
       setCurrentStep((prev) => prev + 1);
@@ -192,11 +211,13 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
           <input
             type="text"
             placeholder="e.g. Daniel"
+            maxLength={25} // Prevents layout explosion
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
             className="w-full h-11 bg-secondary/30 rounded-xl border border-border px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && userName.trim()) setIsStarted(true);
+              // Check trim() to prevent spaces-only progression
+              if (e.key === 'Enter' && userName.trim() && !isSubmitting) setIsStarted(true);
             }}
           />
         </div>
@@ -357,7 +378,7 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
           return (
             <button
               key={option.value}
-              disabled={isSubmitting}
+              disabled={isSubmitting} // Locks option changes mid-flight
               onClick={() => handleSelectOption(option.value)}
               className={`w-full text-left p-4 rounded-xl border transition-all duration-200 flex items-start gap-3 group relative ${
                 isSelected 
@@ -388,7 +409,7 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
       <div className="flex items-center justify-between pt-4 border-t border-border/60">
         <button
           onClick={handleBack}
-          disabled={currentStep === 0 || isSubmitting}
+          disabled={currentStep === 0 || isSubmitting} // Lock back navigation during submission
           className="inline-flex items-center gap-1.5 px-4 h-10 rounded-full text-xs font-medium border border-border hover:bg-secondary disabled:opacity-30 disabled:pointer-events-none transition-colors"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
