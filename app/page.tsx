@@ -198,9 +198,10 @@ export default function LandingPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              /* FIX 1: Max-height bounds and native independent scroll containers */
+              /* FIX 1: Max-height bounds and native independent scroll containers to the left*/
               className="bg-card w-full max-w-xl rounded-3xl border border-border shadow-2xl relative z-10 flex flex-col max-h-[85vh] sm:max-h-[90vh]"
             >
+             
               <div className="overflow-y-auto p-6 sm:p-8 custom-scrollbar">
                 {/* The clean instance: HairQuiz completely owns the inside layout framework */}
                 <HairQuiz onClose={() => setShowQuiz(false)} />

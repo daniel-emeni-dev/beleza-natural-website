@@ -61,6 +61,11 @@ interface HairQuizProps {
 }
 
 export default function HairQuiz({ onClose }: HairQuizProps) {
+  // Personalization State Layers
+  const [userName, setUserName] = useState("");
+  const [isStarted, setIsStarted] = useState(false);
+
+  // Standard Quiz State Controls
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,6 +91,7 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
           .from("diagnostics")
           .insert([
             {
+              user_name: userName.trim() || "Guest",
               porosity: answers.porosity,
               texture: answers.texture,
               scalp_hydration: answers.scalp_hydration,
@@ -117,9 +123,57 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
     setCurrentStep(0);
     setShowResults(false);
     setSubmitError(null);
+    setUserName("");
+    setIsStarted(false);
   };
 
-  // Render the Results Screen view dynamically once state flags clear
+  // 1. WELCOME STEP: Prompt for personalization before firing metrics engine
+  if (!isStarted) {
+    return (
+      <div className="space-y-6 text-left animate-in fade-in duration-300">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-primary/10 text-primary uppercase tracking-wider">
+            Bespoke Diagnostic Setup
+          </div>
+          <h3 className="font-serif text-2xl font-normal text-foreground leading-tight">
+            Let's customize your assessment.
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Your custom trichology protocol maps specific biological parameters. What name should we sign your prescription to?
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
+            Your First Name
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. Daniel"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            className="w-full h-11 bg-secondary/30 rounded-xl border border-border px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && userName.trim()) setIsStarted(true);
+            }}
+          />
+        </div>
+
+        <div className="pt-4 border-t border-border/60 flex justify-end">
+          <button
+            onClick={() => setIsStarted(true)}
+            disabled={!userName.trim()}
+            className="inline-flex items-center gap-1.5 px-6 h-11 rounded-full text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:pointer-events-none shadow-xs transition-all"
+          >
+            Configure Engine
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. RESULTS VIEW: Display personalized dashboard configuration
   if (showResults) {
     const routine = ROUTINE_MATRIX[answers.porosity] || ROUTINE_MATRIX.medium;
     
@@ -131,12 +185,13 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-serif text-xl font-medium text-foreground print:text-black">Analysis Complete</h3>
+              <h3 className="font-serif text-xl font-medium text-foreground print:text-black capitalize">
+                {userName}'s Analysis
+              </h3>
               <p className="text-xs text-muted-foreground print:text-neutral-500">Your trichology profile generated instantly</p>
             </div>
           </div>
           
-          {/* Subtle Print Trigger Option */}
           <button
             onClick={() => window.print()}
             className="text-xs font-medium px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground print:hidden flex items-center gap-1.5"
@@ -220,6 +275,7 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
     );
   }
 
+  // 3. MAIN EVALUATION STEPS
   return (
     <div className="space-y-6 text-left">
       {/* Header Indicators */}
