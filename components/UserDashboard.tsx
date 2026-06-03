@@ -91,7 +91,6 @@ export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) 
     } else {
       steps.push({ title: "Moisture Application", desc: "A standard moisturizing leave-in conditioner after washes keeps your strands hydrated and soft." });
     }
-
     if (assessment.curl_pattern === "coily") {
       steps.push({ title: "Daily Styling Choice", desc: "Opt for the 'shingling' or twisting method using moisturizing butters to define your rich coils and manage shrinkage." });
     } else if (assessment.curl_pattern === "curly") {
