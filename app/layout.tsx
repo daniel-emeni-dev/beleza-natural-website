@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 
-// Standard alias imports for your core layout pieces
+// Standard alias imports for my core layout pieces
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import ClientProviders from "@/components/ClientProviders"

@@ -63,7 +63,7 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
     } else {
       await handleSubmitQuiz();
     }
-  };
+  }; This is my HairQuiz.tsx, make the updates for me please, with out changing anything else
 
   const handleBack = () => {
     if (currentStep > 0) {
