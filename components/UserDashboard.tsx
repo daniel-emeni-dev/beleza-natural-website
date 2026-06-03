@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { LogOut, Loader2, Sparkles, Calendar, CheckCircle, RefreshCw } from "lucide-react";
+import { LogOut, Loader2, Sparkles, Calendar, CheckCircle, RefreshCw, History } from "lucide-react";
 
 interface UserDashboardProps {
   onSignOutSuccess: () => void;
@@ -10,11 +10,11 @@ interface UserDashboardProps {
 
 export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) {
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState<any>(null);
+  const [allAssessments, setAllAssessments] = useState<any[]>([]);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
-    async function fetchUserRoutine() {
+    async function fetchUserHistory() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
@@ -22,29 +22,27 @@ export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) 
           return;
         }
 
-        // Fetching the user's absolute latest plan
+        // UPGRADE: Fetching all records sorted by newest first to build a timeline history
         const { data, error } = await supabase
           .from("hair_diagnostics")
           .select("*")
           .eq("user_id", session.user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
+          .order("created_at", { ascending: false });
 
-        if (error && error.code !== "PGRST116") throw error;
-        setUserData(data || null);
+        if (error) throw error;
+        setAllAssessments(data || []);
       } catch (err) {
-        console.error("Error reading routine profile:", err);
+        console.error("Error reading routine history map:", err);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchUserRoutine();
+    fetchUserHistory();
   }, []);
 
   const handleSignOut = async () => {
-    setIsSigningOut(false);
+    setIsSigningOut(true);
     try {
       await supabase.auth.signOut();
       onSignOutSuccess();
@@ -53,7 +51,6 @@ export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) 
     }
   };
 
-  // Helper mapping to translate raw database flags into friendly everyday text
   const getFriendlyTrait = (type: string, key: string) => {
     const dictionary: Record<string, Record<string, string>> = {
       porosity: {
@@ -75,34 +72,29 @@ export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) 
     return dictionary[type]?.[key] || key;
   };
 
-  // Generates simple, step-by-step practical advice depending on their choices
-  const generateRoutineSteps = () => {
-    if (!userData) return [];
-    
+  const generateRoutineSteps = (assessment: any) => {
+    if (!assessment) return [];
     const steps = [];
     
-    // Wash advice based on scalp
-    if (userData.scalp_type === "oily") {
+    if (assessment.scalp_type === "oily") {
       steps.push({ title: "The Wash Habit", desc: "Use a clarifying, lightweight shampoo twice a week to keep your roots fresh without stripping your ends." });
-    } else if (userData.scalp_type === "dry") {
+    } else if (assessment.scalp_type === "dry") {
       steps.push({ title: "The Wash Habit", desc: "Stick to washing once a week or every 10 days using a creamy, moisturizing wash to protect your scalp's natural oils." });
     } else {
       steps.push({ title: "The Wash Habit", desc: "A gentle, sulfate-free balancing shampoo once a week keeps everything clean and perfectly stable." });
     }
 
-    // Conditioning advice based on porosity
-    if (userData.porosity_score === "low") {
+    if (assessment.porosity_score === "low") {
       steps.push({ title: "Moisture Application", desc: "Use lightweight leave-in liquids or milks. Apply your conditioner while your hair is warm in the shower so it absorbs properly." });
-    } else if (userData.porosity_score === "high") {
+    } else if (assessment.porosity_score === "high") {
       steps.push({ title: "Moisture Application", desc: "Layer thick, rich creams followed by a light natural oil to lock in water and prevent it from drying out by midday." });
     } else {
       steps.push({ title: "Moisture Application", desc: "A standard moisturizing leave-in conditioner after washes keeps your strands hydrated and soft." });
     }
 
-    // Styling advice based on pattern
-    if (userData.curl_pattern === "coily") {
+    if (assessment.curl_pattern === "coily") {
       steps.push({ title: "Daily Styling Choice", desc: "Opt for the 'shingling' or twisting method using moisturizing butters to define your rich coils and manage shrinkage." });
-    } else if (userData.curl_pattern === "curly") {
+    } else if (assessment.curl_pattern === "curly") {
       steps.push({ title: "Daily Styling Choice", desc: "Rake a defining gel or mousse through soaking wet curls to enhance your springy corkscrews with zero crunch." });
     } else {
       steps.push({ title: "Daily Styling Choice", desc: "Use a super light foam or spray gel to give your soft waves structure without dragging down your natural volume." });
@@ -115,12 +107,15 @@ export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) 
     return (
       <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        <p className="text-xs font-medium font-sans">Reading your hair profile card...</p>
+        <p className="text-xs font-medium font-sans">Reading your hair history profile...</p>
       </div>
     );
   }
 
-  const routine = generateRoutineSteps();
+  // The very first item in our array is our current active profile
+  const latestAssessment = allAssessments[0] || null;
+  const historicAssessments = allAssessments.slice(1); // The rest go into history timeline
+  const routine = generateRoutineSteps(latestAssessment);
 
   return (
     <div className="space-y-6">
@@ -143,8 +138,7 @@ export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) 
         </button>
       </div>
 
-      {!userData ? (
-        /* Empty State Warning Box */
+      {!latestAssessment ? (
         <div className="p-6 text-center border-2 border-dashed border-border rounded-2xl space-y-3">
           <p className="text-sm text-muted-foreground">You haven't run your profile analysis yet!</p>
           <a href="/analysis" className="inline-flex h-9 px-4 rounded-full bg-primary text-primary-foreground text-xs font-medium items-center justify-center hover:bg-primary/90 transition-all">
@@ -152,16 +146,15 @@ export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) 
           </a>
         </div>
       ) : (
-        /* Dynamic Dashboard Content Block */
         <div className="space-y-6">
           {/* Summary Traits Group */}
           <div className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Hair Profile</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Active Hair Traits</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {[
-                { label: "Absorbs Water As", val: getFriendlyTrait("porosity", userData.porosity_score) },
-                { label: "Your Scalp Is", val: getFriendlyTrait("scalp", userData.scalp_type) },
-                { label: "Your Shape Is", val: getFriendlyTrait("pattern", userData.curl_pattern) }
+                { label: "Absorbs Water As", val: getFriendlyTrait("porosity", latestAssessment.porosity_score) },
+                { label: "Your Scalp Is", val: getFriendlyTrait("scalp", latestAssessment.scalp_type) },
+                { label: "Your Shape Is", val: getFriendlyTrait("pattern", latestAssessment.curl_pattern) }
               ].map((trait, i) => (
                 <div key={i} className="p-3 bg-muted/30 border-2 border-border rounded-xl">
                   <p className="text-[10px] text-muted-foreground uppercase font-semibold">{trait.label}</p>
@@ -171,21 +164,18 @@ export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) 
             </div>
           </div>
 
-          {/* Core Structured Routine Steps (High-Visibility modern classic cards) */}
+          {/* Core Structured Routine Steps */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Everyday Routine</h3>
-              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                <Calendar className="w-3 h-3" /> Updated Today
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border">
+                <Calendar className="w-3 h-3" /> Latest: {new Date(latestAssessment.created_at).toLocaleDateString()}
               </span>
             </div>
 
             <div className="space-y-3">
               {routine.map((step, idx) => (
-                <div 
-                  key={idx} 
-                  className="bg-card p-4 rounded-xl border-2 border-border shadow-sm flex items-start gap-4"
-                >
+                <div key={idx} className="bg-card p-4 rounded-xl border-2 border-border shadow-sm flex items-start gap-4">
                   <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
                     {idx + 1}
                   </div>
@@ -200,6 +190,27 @@ export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) 
               ))}
             </div>
           </div>
+
+          {/* NEW: Historical Timeline Section (Only shows if they have old quiz records) */}
+          {historicAssessments.length > 0 && (
+            <div className="space-y-3 pt-2">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5" /> Previous Hair Checks
+              </h3>
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-1 border border-border rounded-xl p-3 bg-muted/10">
+                {historicAssessments.map((past: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between text-xs py-1.5 border-b border-border/40 last:border-0">
+                    <span className="text-muted-foreground font-medium">
+                      {new Date(past.created_at).toLocaleDateString()}
+                    </span>
+                    <span className="text-foreground font-semibold">
+                      {getFriendlyTrait("pattern", past.curl_pattern)} • {getFriendlyTrait("porosity", past.porosity_score)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Quick Notice Banner Box */}
           <div className="p-3.5 bg-secondary/40 border-2 border-border rounded-xl flex gap-3 items-center">
