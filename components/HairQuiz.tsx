@@ -131,7 +131,6 @@ export default function HairQuiz({ onClose }: HairQuizProps) {
           {stepData.description}
         </p>
       </div>
-
       {/* Error Bar */}
       {errorMessage && (
         <div className="p-3 bg-destructive/10 border-2 border-destructive/20 text-destructive text-xs font-medium rounded-xl">

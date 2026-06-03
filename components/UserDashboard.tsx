@@ -105,9 +105,48 @@ export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) 
 
   if (loading) {
     return (
-      <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        <p className="text-xs font-medium font-sans">Reading your hair history profile...</p>
+      <div className="space-y-6 animate-pulse">
+        {/* Header Skeleton */}
+        <div className="flex items-start justify-between pb-4 border-b border-border">
+          <div className="space-y-2 w-1/3">
+            <div className="h-4 bg-muted border border-border rounded-md w-20" />
+            <div className="h-7 bg-muted border border-border rounded-md w-full" />
+          </div>
+          <div className="h-8 bg-muted border border-border rounded-lg w-24" />
+        </div>
+
+        {/* Traits Grid Skeleton */}
+        <div className="space-y-2">
+          <div className="h-3 bg-muted border border-border rounded-sm w-24" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-3 bg-muted/30 border-2 border-border rounded-xl space-y-2">
+                <div className="h-3 bg-muted rounded-sm w-16" />
+                <div className="h-4 bg-muted rounded-sm w-3/4" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Core Routine Steps Skeleton */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="h-3 bg-muted border border-border rounded-sm w-32" />
+            <div className="h-4 bg-muted border border-border rounded-md w-24" />
+          </div>
+
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-card p-4 rounded-xl border-2 border-border shadow-sm flex items-start gap-4">
+                <div className="w-5 h-5 rounded-full bg-muted border border-border shrink-0" />
+                <div className="space-y-2 w-full">
+                  <div className="h-4 bg-muted rounded-sm w-1/4" />
+                  <div className="h-3 bg-muted rounded-sm w-5/6" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
