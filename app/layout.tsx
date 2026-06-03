@@ -1,7 +1,12 @@
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import './globals.css'
+
+// Standard alias imports for your core layout pieces
+import Navbar from "@/components/Navbar"
+import Footer from "@/components/Footer"
+import ClientProviders from "@/components/ClientProviders"
+import "./styles/globals.css" 
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -14,8 +19,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'Beleza Natural Hair Clinic | Futuristic Hair & Scalp Care',
-  description: 'Next-generation hair clinic with AI scalp analysis, dermatological expertise, and holistic hair wellness. Specialized care for Black women with natural hair.',
+  title: 'Beleza Natural Hair Clinic | Simple & Real Hair Care',
+  description: 'Helping you understand your natural curls, coils, and waves. Simple, clear, and practical routines built specifically for your unique hair journey.',
   generator: 'v0.app',
   themeColor: '#a7f3d0',
   icons: {
@@ -34,9 +39,16 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-      <body className="font-sans antialiased">
-        {children}
+    <html lang="en" className={`${inter.variable} ${playfair.variable} scroll-smooth`}>
+      <body className="min-h-screen bg-background text-foreground antialiased flex flex-col font-sans">
+        {/* We wrap the app logic inside our new client supervisor container */}
+        <ClientProviders>
+          <Navbar />
+          <div className="flex-1">
+            {children}
+          </div>
+          <Footer />
+        </ClientProviders>
         <Analytics />
       </body>
     </html>
