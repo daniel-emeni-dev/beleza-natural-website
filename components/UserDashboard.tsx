@@ -1,205 +1,214 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Loader2, Layers, Activity, Droplets, Calendar, LogOut, RefreshCw, Sparkles } from "lucide-react";
+import { LogOut, Loader2, Sparkles, Calendar, CheckCircle, RefreshCw } from "lucide-react";
 
-// Mirroring the exact same business logic engine to parse raw db values cleanly on the dashboard
-function generateClinicalRoutine(porosity: string, texture: string, scalp: string) {
-  let summary = "";
-  let steps: string[] = [];
-  let products: string[] = [];
-
-  if (porosity === "low") {
-    summary = "Your cuticles are tightly closed, creating a dense biological barrier that locks moisture out.";
-    steps = ["Clarify with warm water to lift cuticles.", "Apply deep conditioning masques underneath indirect heat.", "Incorporate lightweight, water-soluble humectants."];
-    products = ["Glycerin leave-in", "Sweet almond oil"];
-  } else if (porosity === "high") {
-    summary = "Your cuticles are widely separated, letting moisture escape just as fast as it enters.";
-    steps = ["Incorporate regular protein rinses to fill gaps.", "Layer hydration strictly using the LOC/LCO method.", "Rinse conditioners with cool water to induce contraction."];
-    products = ["Heavy castor oil", "Amino acid masques"];
-  } else {
-    summary = "Your cuticles are perfectly balanced, absorbing and retaining vital hydration optimally.";
-    steps = ["Maintain a consistent weekly hydration washing interval.", "Protect fiber structure nightly using a silk wrap.", "Alternate smoothly between moisture and light protein masques."];
-    products = ["Jojoba balancing mist", "Aloe vera leave-in"];
-  }
-
-  if (scalp === "oily") {
-    summary += " Because your sebum profile is overactive, your protocol focuses heavily on stabilizing the root ecosystem.";
-    steps.unshift("Execute a targeted scalp-only double cleanse during washdays.");
-  } else if (scalp === "dry") {
-    summary += " Additionally, your scalp moisture barrier is slightly compromised, requiring extra lipid replenishment.";
-    steps.push("Massage a botanical lipid directly onto clean scalp skin post-wash.");
-  }
-
-  return { summary, steps, products };
+interface UserDashboardProps {
+  onSignOutSuccess: () => void;
 }
 
-interface DiagnosticRecord {
-  id: number;
-  user_name: string;
-  porosity: string;
-  texture: string;
-  scalp_hydration: string;
-  timestamp: string;
-}
-
-export default function UserDashboard({ onSignOutSuccess }: { onSignOutSuccess: () => void }) {
+export default function UserDashboard({ onSignOutSuccess }: UserDashboardProps) {
   const [loading, setLoading] = useState(true);
-  const [record, setRecord] = useState<DiagnosticRecord | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchUserDiagnostic = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      if (user) {
-        // Query the latest evaluation saved by this authenticated user ID
-        const { data, error: dbError } = await supabase
-          .from("diagnostics")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("timestamp", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (dbError) throw dbError;
-        setRecord(data);
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to sync dashboard records.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [userData, setUserData] = useState<any>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   useEffect(() => {
-    fetchUserDiagnostic();
+    async function fetchUserRoutine() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetching the user's absolute latest plan
+        const { data, error } = await supabase
+          .from("hair_diagnostics")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error && error.code !== "PGRST116") throw error;
+        setUserData(data || null);
+      } catch (err) {
+        console.error("Error reading routine profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUserRoutine();
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    onSignOutSuccess();
+    setIsSigningOut(false);
+    try {
+      await supabase.auth.signOut();
+      onSignOutSuccess();
+    } catch (err) {
+      console.error("Error signing out:", err);
+    }
+  };
+
+  // Helper mapping to translate raw database flags into friendly everyday text
+  const getFriendlyTrait = (type: string, key: string) => {
+    const dictionary: Record<string, Record<string, string>> = {
+      porosity: {
+        low: "Moisture Shield (Low Porosity)",
+        normal: "Perfectly Balanced",
+        high: "Thirsty Curls (High Porosity)"
+      },
+      scalp: {
+        oily: "Quick to Oil",
+        normal: "Happy & Balanced",
+        dry: "Naturally Dry or Flaky"
+      },
+      pattern: {
+        wavy: "Gentle Waves",
+        curly: "Springy Curls",
+        coily: "Rich Coils & Micro-Patterns"
+      }
+    };
+    return dictionary[type]?.[key] || key;
+  };
+
+  // Generates simple, step-by-step practical advice depending on their choices
+  const generateRoutineSteps = () => {
+    if (!userData) return [];
+    
+    const steps = [];
+    
+    // Wash advice based on scalp
+    if (userData.scalp_type === "oily") {
+      steps.push({ title: "The Wash Habit", desc: "Use a clarifying, lightweight shampoo twice a week to keep your roots fresh without stripping your ends." });
+    } else if (userData.scalp_type === "dry") {
+      steps.push({ title: "The Wash Habit", desc: "Stick to washing once a week or every 10 days using a creamy, moisturizing wash to protect your scalp's natural oils." });
+    } else {
+      steps.push({ title: "The Wash Habit", desc: "A gentle, sulfate-free balancing shampoo once a week keeps everything clean and perfectly stable." });
+    }
+
+    // Conditioning advice based on porosity
+    if (userData.porosity_score === "low") {
+      steps.push({ title: "Moisture Application", desc: "Use lightweight leave-in liquids or milks. Apply your conditioner while your hair is warm in the shower so it absorbs properly." });
+    } else if (userData.porosity_score === "high") {
+      steps.push({ title: "Moisture Application", desc: "Layer thick, rich creams followed by a light natural oil to lock in water and prevent it from drying out by midday." });
+    } else {
+      steps.push({ title: "Moisture Application", desc: "A standard moisturizing leave-in conditioner after washes keeps your strands hydrated and soft." });
+    }
+
+    // Styling advice based on pattern
+    if (userData.curl_pattern === "coily") {
+      steps.push({ title: "Daily Styling Choice", desc: "Opt for the 'shingling' or twisting method using moisturizing butters to define your rich coils and manage shrinkage." });
+    } else if (userData.curl_pattern === "curly") {
+      steps.push({ title: "Daily Styling Choice", desc: "Rake a defining gel or mousse through soaking wet curls to enhance your springy corkscrews with zero crunch." });
+    } else {
+      steps.push({ title: "Daily Styling Choice", desc: "Use a super light foam or spray gel to give your soft waves structure without dragging down your natural volume." });
+    }
+
+    return steps;
   };
 
   if (loading) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin text-primary" />
-        <p className="text-xs font-medium tracking-wide uppercase">Synchronizing profile matrices...</p>
+      <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <p className="text-xs font-medium font-sans">Reading your hair profile card...</p>
       </div>
     );
   }
 
+  const routine = generateRoutineSteps();
+
   return (
-    <div className="space-y-6 text-left animate-in fade-in duration-300">
-      {/* Dashboard Top Navigation bar */}
-      <div className="flex items-center justify-between pb-4 border-b border-border/60">
-        <div>
-          <h3 className="font-serif text-xl font-normal text-foreground">
-            Welcome back, {record?.user_name || "Member"}
-          </h3>
-          <p className="text-xs text-muted-foreground">Premium Trichology Control Portal</p>
+    <div className="space-y-6">
+      {/* Profile Welcome Header */}
+      <div className="flex items-start justify-between pb-4 border-b border-border">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-border bg-muted/50 text-[10px] font-bold uppercase tracking-wider text-primary">
+            <Sparkles className="w-2.5 h-2.5" /> My Personal Guide
+          </div>
+          <h2 className="font-serif text-2xl font-medium text-foreground tracking-tight">Your Hair Blueprint</h2>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchUserDiagnostic}
-            className="p-2 rounded-full border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            title="Refresh Data"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={handleSignOut}
-            className="inline-flex items-center gap-1.5 px-3 h-8 rounded-full text-xs font-medium border border-destructive/20 text-destructive bg-destructive/[0.02] hover:bg-destructive/10 transition-colors"
-          >
-            <LogOut className="w-3 h-3" />
-            Sign Out
-          </button>
-        </div>
+        
+        <button
+          onClick={handleSignOut}
+          disabled={isSigningOut}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors h-8 px-3 rounded-lg hover:bg-destructive/5"
+        >
+          {isSigningOut ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+          Sign Out
+        </button>
       </div>
 
-      {error && (
-        <div className="p-3 text-xs rounded-xl bg-destructive/10 text-destructive border border-destructive/20">
-          {error}
-        </div>
-      )}
-
-      {!record ? (
-        <div className="p-8 rounded-xl border border-dashed border-border text-center space-y-3">
-          <p className="text-sm text-muted-foreground">No locked-down trichology records found under this account.</p>
-          <p className="text-xs text-muted-foreground/70">Take the clinical diagnostic on the home screen to map your core profile assets.</p>
+      {!userData ? (
+        /* Empty State Warning Box */
+        <div className="p-6 text-center border-2 border-dashed border-border rounded-2xl space-y-3">
+          <p className="text-sm text-muted-foreground">You haven't run your profile analysis yet!</p>
+          <a href="/analysis" className="inline-flex h-9 px-4 rounded-full bg-primary text-primary-foreground text-xs font-medium items-center justify-center hover:bg-primary/90 transition-all">
+            Take Your First Hair Quiz
+          </a>
         </div>
       ) : (
-        <>
-          {/* Metadata Timestamp Header */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Profile locked on: <b>{new Date(record.timestamp).toLocaleDateString(undefined, { dateStyle: 'medium' })}</b></span>
-          </div>
-
-          {/* Core Profile Matrix Badges */}
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="p-2.5 rounded-xl bg-secondary/40 border border-border flex flex-col items-center gap-1">
-              <Layers className="w-3.5 h-3.5 text-primary" />
-              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-tight">Porosity</span>
-              <span className="font-semibold capitalize text-foreground">{record.porosity}</span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-secondary/40 border border-border flex flex-col items-center gap-1">
-              <Activity className="w-3.5 h-3.5 text-primary" />
-              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-tight">Matrix Pattern</span>
-              <span className="font-semibold capitalize text-foreground">{record.texture}</span>
-            </div>
-            <div className="p-2.5 rounded-xl bg-secondary/40 border border-border flex flex-col items-center gap-1">
-              <Droplets className="w-3.5 h-3.5 text-primary" />
-              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-tight">Scalp Hydration</span>
-              <span className="font-semibold capitalize text-foreground">{record.scalp_hydration.replace('_', ' ')}</span>
+        /* Dynamic Dashboard Content Block */
+        <div className="space-y-6">
+          {/* Summary Traits Group */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Hair Profile</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {[
+                { label: "Absorbs Water As", val: getFriendlyTrait("porosity", userData.porosity_score) },
+                { label: "Your Scalp Is", val: getFriendlyTrait("scalp", userData.scalp_type) },
+                { label: "Your Shape Is", val: getFriendlyTrait("pattern", userData.curl_pattern) }
+              ].map((trait, i) => (
+                <div key={i} className="p-3 bg-muted/30 border-2 border-border rounded-xl">
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold">{trait.label}</p>
+                  <p className="text-xs font-bold text-foreground mt-0.5">{trait.val}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Dynamically Generated Protocol Sheets */}
-          {(() => {
-            const routine = generateClinicalRoutine(record.porosity, record.texture, record.scalp_hydration);
-            return (
-              <div className="space-y-4 pt-2 border-t border-border/40">
-                <div className="space-y-1">
-                  <h4 className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">Clinical Diagnostic Summary</h4>
-                  <p className="text-sm text-muted-foreground leading-relaxed bg-secondary/10 p-3 rounded-xl border border-border/30">
-                    {routine.summary}
-                  </p>
-                </div>
+          {/* Core Structured Routine Steps (High-Visibility modern classic cards) */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Everyday Routine</h3>
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Calendar className="w-3 h-3" /> Updated Today
+              </span>
+            </div>
 
-                <div className="space-y-2">
-                  <h4 className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">Active Regime Tasks</h4>
-                  <ul className="space-y-2">
-                    {routine.steps.map((step, idx) => (
-                      <li key={idx} className="text-xs sm:text-sm text-muted-foreground flex gap-2.5 items-start">
-                        <span className="flex h-4.5 w-4.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold items-center justify-center shrink-0 mt-0.5">
-                          {idx + 1}
-                        </span>
-                        <span className="leading-relaxed">{step}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="space-y-1.5">
-                  <h4 className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">Prescribed Formulation Modifiers</h4>
-                  <div className="flex flex-wrap gap-1.5">
-                    {routine.products.map((p, idx) => (
-                      <span key={idx} className="text-[11px] bg-primary/5 text-primary border border-primary/10 px-2.5 py-0.5 rounded-full font-medium">
-                        {p}
-                      </span>
-                    ))}
+            <div className="space-y-3">
+              {routine.map((step, idx) => (
+                <div 
+                  key={idx} 
+                  className="bg-card p-4 rounded-xl border-2 border-border shadow-sm flex items-start gap-4"
+                >
+                  <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold">
+                    {idx + 1}
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                      {step.title}
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    </h4>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
                   </div>
                 </div>
-              </div>
-            );
-          })()}
-        </>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Notice Banner Box */}
+          <div className="p-3.5 bg-secondary/40 border-2 border-border rounded-xl flex gap-3 items-center">
+            <RefreshCw className="w-4 h-4 text-primary shrink-0 animate-spin-slow" />
+            <p className="text-[11px] text-muted-foreground leading-normal">
+              Hair types evolve with the seasons. If your curls or scalp start behaving differently in a few months, simply re-run the hair quiz to refresh your plan.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
