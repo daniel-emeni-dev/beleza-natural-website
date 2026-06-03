@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import HairQuiz from "@/components/HairQuiz";
-import UserDashboard from "@/components/UserDashboard";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
-  Sparkles, 
   ArrowRight, 
   Scissors, 
   Droplet, 
@@ -37,11 +35,9 @@ const staggerContainer = {
 };
 
 export default function LandingPage() {
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [showDashboard, setShowDashboard] = useState(false);
+  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [sessionLoading, setSessionLoading] = useState<boolean>(true);
-  const [scrolled, setScrolled] = useState(false);
 
   // Sync auth state on mount and listen for real-time authentication shifts
   useEffect(() => {
@@ -55,97 +51,18 @@ export default function LandingPage() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
-      if (!session) {
-        setShowDashboard(false);
-      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // Monitor scroll height to add a beautiful glassmorphism effect to the Navbar
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Lock the body background scrolling when the modal or dashboard container active state triggers
-  useEffect(() => {
-    if (showQuiz || showDashboard) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [showQuiz, showDashboard]);
-
   return (
     <div className="min-h-screen bg-background font-sans relative overflow-x-hidden selection:bg-primary/10">
       
-      {/* HEADER / NAVIGATION BAR */}
-      <header className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
-        scrolled 
-          ? "bg-background/80 backdrop-blur-md border-b border-border py-4" 
-          : "bg-transparent py-6"
-      }`}>
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <div 
-            onClick={() => { setShowQuiz(false); setShowDashboard(false); }} 
-            className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity"
-          >
-            <Sparkles className="w-5 h-5 text-primary" />
-            <span className="font-serif text-xl font-bold tracking-tight text-foreground">
-              Beleza Natural
-            </span>
-          </div>
-          
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <a href="#features" className="hover:text-foreground transition-colors">Methodology</a>
-            <a href="#benefits" className="hover:text-foreground transition-colors">Analysis Engine</a>
-            <a href="#clinic" className="hover:text-foreground transition-colors">Clinical System</a>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            {sessionLoading ? (
-              <div className="w-9 h-9 rounded-full bg-secondary/40 animate-pulse" />
-            ) : isAuthenticated ? (
-              <button
-                onClick={() => setShowDashboard(!showDashboard)}
-                className={`inline-flex items-center gap-1.5 px-4 h-10 rounded-full text-xs font-medium transition-all shadow-xs ${
-                  showDashboard
-                    ? "bg-foreground text-background hover:opacity-90"
-                    : "border border-border bg-secondary/30 hover:bg-secondary text-foreground"
-                }`}
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                {showDashboard ? "Exit Dashboard" : "My Private Portal"}
-              </button>
-            ) : (
-              <button 
-                onClick={() => setShowQuiz(true)}
-                className="inline-flex items-center justify-center text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-5 rounded-full shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Start Analysis
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* HERO SECTION */}
-      <main className="pt-32 pb-24 md:pt-40 md:pb-32 max-w-7xl mx-auto px-6 relative">
+     {/* HERO SECTION */}
+      <main className="pt-48 pb-24 md:pt-56 md:pb-32 max-w-7xl mx-auto px-6 relative">
         {/* Subtle Background Glow Blurs */}
         <div className="absolute top-12 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none -z-10" />
-        <div className="absolute top-40 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
         <motion.div 
           initial="hidden"
@@ -179,16 +96,18 @@ export default function LandingPage() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
           >
             <button 
-              onClick={() => setShowQuiz(true)}
+              onClick={() => router.push(isAuthenticated ? "/dashboard" : "/analysis")}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-base font-medium transition-all bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 rounded-full shadow-md hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] group"
             >
-              Begin Hair Assessment
+              {isAuthenticated ? "Go to Dashboard" : "Begin Hair Assessment"}
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </button>
             
-            {isAuthenticated ? (
+            {sessionLoading ? (
+              <div className="w-40 h-12 rounded-full bg-secondary/40 animate-pulse" />
+            ) : isAuthenticated ? (
               <button 
-                onClick={() => setShowDashboard(true)}
+                onClick={() => router.push("/dashboard")}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-base font-medium transition-colors border border-border bg-card hover:bg-secondary text-foreground h-12 px-8 rounded-full shadow-sm"
               >
                 <LayoutDashboard className="w-4 h-4" />
@@ -236,64 +155,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* QUIZ MODAL W/ ANIMATEPRESENCE FOR SMOOTH LIFECYCLE CLOSES */}
-      <AnimatePresence>
-        {showQuiz && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Dark glass backdrop overlay */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowQuiz(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
-            />
-            
-            {/* Center Modal Card Container */}
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="bg-card w-full max-w-xl rounded-3xl border border-border shadow-2xl relative z-10 flex flex-col max-h-[85vh] sm:max-h-[90vh]"
-            >
-              <div className="overflow-y-auto p-6 sm:p-8 custom-scrollbar">
-                <HairQuiz onClose={() => setShowQuiz(false)} />
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* DASHBOARD MODAL CONTROL CENTRE */}
-      <AnimatePresence>
-        {showDashboard && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Dark glass backdrop overlay */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowDashboard(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-xs"
-            />
-            
-            {/* Center Modal Card Container */}
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="bg-card w-full max-w-xl rounded-3xl border border-border shadow-2xl relative z-10 flex flex-col max-h-[85vh] sm:max-h-[90vh]"
-            >
-              <div className="overflow-y-auto p-6 sm:p-8 custom-scrollbar">
-                <UserDashboard onSignOutSuccess={() => setShowDashboard(false)} />
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

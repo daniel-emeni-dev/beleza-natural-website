@@ -43,13 +43,14 @@ export default function Navbar() {
   }, [isOpen]);
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled ? "bg-background border-b-2 border-border py-3 shadow-xs" : "bg-transparent py-5"
-    }`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+        ? "bg-background/90 backdrop-blur-md border-b-2 border-border py-3 shadow-xs"
+        : "bg-background/40 backdrop-blur-xs py-5" /* Added a light backdrop safety net here */
+      }`}>
       <div className="max-w-6xl mx-auto px-6 flex items-center justify-between">
         {/* Brand Logo */}
-        <Link 
-          href="/" 
+        <Link
+          href="/"
           onClick={() => setIsOpen(false)}
           className="flex items-center gap-2 font-serif text-xl font-bold tracking-tight text-foreground select-none"
         >
@@ -70,7 +71,7 @@ export default function Navbar() {
 
         {/* Desktop Action Trigger */}
         <div className="hidden md:block">
-          <Link 
+          <Link
             href={isAuthenticated ? "/dashboard" : "/analysis"}
             className="inline-flex items-center justify-center text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 rounded-full transition-all active:scale-98 shadow-sm"
           >
@@ -79,8 +80,8 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Hamburger Button */}
-        <button 
-          onClick={() => setIsOpen(!isOpen)} 
+        <button
+          onClick={() => setIsOpen(!isOpen)}
           className="md:hidden p-2 -mr-2 text-foreground rounded-xl border-2 border-transparent active:border-border transition-colors focus:outline-none"
           aria-label={isOpen ? "Close Menu" : "Open Menu"}
         >
@@ -91,7 +92,7 @@ export default function Navbar() {
       {/* Fluid Animated Drawer Dropdown */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -99,17 +100,17 @@ export default function Navbar() {
             className="md:hidden absolute top-full left-0 right-0 bg-background border-b-2 border-border p-6 shadow-xl flex flex-col h-[calc(100vh-64px)] overflow-y-auto"
           >
             <nav className="flex flex-col gap-5 text-lg font-medium text-muted-foreground mt-4">
-              <Link 
-                href="/#features" 
-                onClick={() => setIsOpen(false)} 
+              <Link
+                href="/#features"
+                onClick={() => setIsOpen(false)}
                 className={`py-2 transition-colors ${pathname === "/" ? "text-foreground font-semibold" : ""}`}
               >
                 Our Approach
               </Link>
               {isAuthenticated && (
-                <Link 
-                  href="/dashboard" 
-                  onClick={() => setIsOpen(false)} 
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsOpen(false)}
                   className={`flex items-center gap-2 py-2 transition-colors ${pathname === "/dashboard" ? "text-primary font-bold" : "text-primary"}`}
                 >
                   <LayoutDashboard className="w-5 h-5" />
@@ -119,7 +120,7 @@ export default function Navbar() {
             </nav>
 
             <div className="mt-auto pb-8">
-              <Link 
+              <Link
                 href={isAuthenticated ? "/dashboard" : "/analysis"}
                 onClick={() => setIsOpen(false)}
                 className="w-full inline-flex items-center justify-center font-medium bg-primary text-primary-foreground text-sm h-12 px-5 rounded-full shadow-sm active:scale-98 transition-transform"
